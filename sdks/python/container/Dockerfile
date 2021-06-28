@@ -17,8 +17,11 @@
 ###############################################################################
 
 ARG py_version
-FROM python:"${py_version}"-buster
+#FROM python:"${py_version}"-buster
+FROM continuumio/miniconda3:latest
 MAINTAINER "Apache Beam <dev@beam.apache.org>"
+
+SHELL ["/bin/bash", "--login", "-c"]
 
 ARG pull_licenses
 
@@ -31,6 +34,8 @@ RUN apt-get update && \
        libyaml-dev \
        # This is used to speed up the re-installation of the sdk.
        ccache \
+       gcc \
+       build-essential \
        && \
     rm -rf /var/lib/apt/lists/*
 
@@ -40,6 +45,8 @@ RUN apt-get update && \
 # in the next RUN statement.
 
 COPY target/base_image_requirements.txt /tmp/base_image_requirements.txt
+
+
 RUN \
     pip install -r /tmp/base_image_requirements.txt && \
     # Check that the fast implementation of protobuf is used.
@@ -90,4 +97,7 @@ COPY target/LICENSE /opt/apache/beam/
 COPY target/NOTICE /opt/apache/beam/
 
 ADD target/launcher/linux_amd64/boot /opt/apache/beam/
-ENTRYPOINT ["/opt/apache/beam/boot"]
+
+RUN conda install -c conda-forge py-openimageio
+
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "base","/opt/apache/beam/boot"]
